@@ -13,6 +13,7 @@ const User = sequelize.define('User', {
   couponUtilise: { type: DataTypes.INTEGER, defaultValue: 0 },
   resetCode: { type: DataTypes.STRING, allowNull: true },
   resetCodeExpiry: { type: DataTypes.DATE, allowNull: true },
+  fcmToken: { type: DataTypes.STRING, allowNull: true },
 }, { tableName: 'users' });
 
 module.exports = User;
