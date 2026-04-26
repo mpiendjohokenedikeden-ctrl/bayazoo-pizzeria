@@ -1,5 +1,6 @@
 const { Order, OrderItem, User } = require('../models/index');
 const { Op } = require('sequelize');
+const { envoyerNotification } = require('../services/notificationService');
 
 const genererCodeQR = () => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -224,10 +225,27 @@ exports.commandesLivreur = async (req, res) => {
 
 exports.changerStatut = async (req, res) => {
   try {
-    const order = await Order.findByPk(req.params.id);
+    const order = await Order.findByPk(req.params.id, {
+      include: [{ model: User, as: 'client' }],
+    });
     if (!order) return res.status(404).json({ message: 'Commande introuvable' });
 
     await order.update({ statut: req.body.statut });
+
+    // Notification client
+    const client = order.client;
+    if (client?.fcmToken) {
+      const messages = {
+        en_preparation: { titre: '👨‍🍳 En préparation', corps: `Votre commande ${order.codeCommande} est en cours de préparation !` },
+        pret: { titre: '✅ Commande prête', corps: `Votre commande ${order.codeCommande} est prête !` },
+        en_livraison: { titre: '🛵 En livraison', corps: `Votre commande ${order.codeCommande} est en route !` },
+        paye: { titre: '✅ Payée', corps: `Votre commande ${order.codeCommande} a été payée. Merci !` },
+        remis_client: { titre: '🏪 Remise', corps: `Votre commande ${order.codeCommande} vous a été remise !` },
+      };
+      const msg = messages[req.body.statut];
+      if (msg) await envoyerNotification(client.fcmToken, msg.titre, msg.corps, { codeCommande: order.codeCommande });
+    }
+
     res.json({ message: 'Statut mis à jour', commande: order });
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', erreur: err.message });
