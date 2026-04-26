@@ -1,11 +1,16 @@
 const admin = require('firebase-admin');
-const serviceAccount = require('../firebase-admin.json');
 
 // Initialiser Firebase Admin
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
+  try {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+    console.log('✅ Firebase Admin initialisé');
+  } catch (err) {
+    console.error('❌ Erreur Firebase Admin:', err.message);
+  }
 }
 
 // Envoyer une notification à un utilisateur
