@@ -3,29 +3,47 @@ const { RemiseEspeces, User, Order } = require('../models/index');
 // SOLDE ESPÈCES DU LIVREUR
 exports.getSolde = async (req, res) => {
   try {
-    // Total des commandes espèces payées par ce livreur
+    const { Op } = require('sequelize');
+
+    const debutJour = new Date();
+    debutJour.setHours(0, 0, 0, 0);
+    const finJour = new Date();
+    finJour.setHours(23, 59, 59, 999);
+
+    // Espèces encaissées aujourd'hui seulement
     const commandes = await Order.findAll({
       where: {
         livreurId: req.user.id,
         modePaiement: 'especes',
-        statut: 'paye',
+        statut: { [Op.in]: ['paye', 'remis_client'] },
+        createdAt: { [Op.between]: [debutJour, finJour] },
       },
     });
+    const totalEncaisse = commandes.reduce(
+      (sum, c) => sum + c.total, 0
+    );
 
-    const totalEncaisse = commandes.reduce((sum, c) => sum + c.total, 0);
-
-    // Total des remises confirmées
+    // Remises confirmées aujourd'hui seulement
     const remises = await RemiseEspeces.findAll({
-      where: { livreurId: req.user.id, statut: 'confirmee' },
+      where: {
+        livreurId: req.user.id,
+        statut: 'confirmee',
+        createdAt: { [Op.between]: [debutJour, finJour] },
+      },
     });
+    const totalRemis = remises.reduce(
+      (sum, r) => sum + r.montant, 0
+    );
 
-    const totalRemis = remises.reduce((sum, r) => sum + r.montant, 0);
-
-    const solde = totalEncaisse - totalRemis;
+    // Solde = encaissé - remis (jamais négatif)
+    const solde = Math.max(0, totalEncaisse - totalRemis);
 
     res.json({ solde, totalEncaisse, totalRemis });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', erreur: err.message });
+    res.status(500).json({
+      message: 'Erreur serveur',
+      erreur: err.message,
+    });
   }
 };
 

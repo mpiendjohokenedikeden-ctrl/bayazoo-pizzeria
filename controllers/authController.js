@@ -71,6 +71,7 @@ exports.inscription = async (req, res) => {
 exports.connexion = async (req, res) => {
   try {
     const { email, motDePasse } = req.body;
+    console.log('🔐 Tentative connexion:', email);
 
     const user = await User.findOne({ where: { email } });
     if (!user) {
@@ -93,6 +94,7 @@ exports.connexion = async (req, res) => {
       },
     });
   } catch (err) {
+    console.error('❌ Erreur connexion:', err.message);
     res.status(500).json({ message: 'Erreur serveur', erreur: err.message });
   }
 };

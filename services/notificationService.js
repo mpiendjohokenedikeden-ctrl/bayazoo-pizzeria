@@ -3,11 +3,15 @@ const admin = require('firebase-admin');
 // Initialiser Firebase Admin
 if (!admin.apps.length) {
   try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-    console.log('✅ Firebase Admin initialisé');
+    if (process.env.FIREBASE_CREDENTIALS) {
+      const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+      console.log('✅ Firebase Admin initialisé');
+    } else {
+      console.log('⚠️ Firebase Admin ignoré en local');
+    }
   } catch (err) {
     console.error('❌ Erreur Firebase Admin:', err.message);
   }
